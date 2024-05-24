@@ -1,0 +1,47 @@
+name: Secrets Workflow
+
+on:
+  workflow_run:
+    workflows: ["PR Test Pipeline"]
+    types:
+      - completed
+
+permissions:
+  checks: write
+  pull-requests: write
+
+jobs:
+  use-secrets:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.SUBMODULE_TOKEN }}  # 시크릿 사용하여 체크아웃
+          submodules: recursive
+
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Gradle build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build
+
+      - name: Publish test result
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action/linux@v2
+        with:
+          files: '**/build/test-results/test/TEST-*.xml'
+
+      - name: Add comment on fail test
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: '**/build/test-results/test/TEST-*.xml'
+          token: ${{ secrets.GITHUB_TOKEN }}
