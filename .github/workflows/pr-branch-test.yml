@@ -30,6 +30,9 @@ jobs:
       - name: Create success artifact
         if: success()
         run: echo "success" > success.txt
+
+      - name: Upload success artifact
+        if: success()
         uses: actions/upload-artifact@v3
         with:
           name: pr-check-success
